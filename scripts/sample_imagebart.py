@@ -153,7 +153,7 @@ def run(models, user_conditioning, batch_size, device=torch.device("cuda:0"),con
     start_index = len(models) - 1
     model = models[start_index]
 
-    pathlib.Path('imagebart/').mkdir(parents=True, exist_ok=True)
+    pathlib.Path('output/ffhq_4s_geo/').mkdir(parents=True, exist_ok=True)
     n_downs= model.first_stage_model.encoder.num_resolutions - 1
     h = model.first_stage_model.encoder.resolution // (2**n_downs)
     w = model.first_stage_model.encoder.resolution // (2**n_downs)
@@ -222,7 +222,7 @@ def run(models, user_conditioning, batch_size, device=torch.device("cuda:0"),con
                 current_scale = (scale * torch.ones(batch_size, 1)).to(device).long()
 
         intermediate_grid = make_grid(final_samples[-1],nrow=batch_size,padding=0)
-        PIL.Image.fromarray(chw_to_np(intermediate_grid), 'RGB').save('imagebart/' + str(count).zfill(5) + '.png')
+        PIL.Image.fromarray(chw_to_np(intermediate_grid), 'RGB').save('output/ffhq_4s_geo/' + str(count).zfill(5) + '.png')
         count = count + 1
             # st.image(chw_to_st(intermediate_grid),clamp=True,output_format='PNG')
         # final_samples = torch.cat(final_samples, 0)
