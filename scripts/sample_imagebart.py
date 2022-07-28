@@ -163,67 +163,67 @@ def run(models, user_conditioning, batch_size, device=torch.device("cuda:0"),con
     index_shape = [batch_size, h * w]
     qzshape = [batch_size, dim_z, h, w]
 
-    st.info(f'Latent shape is {qzshape}')
+    # st.info(f'Latent shape is {qzshape}')
     if user_conditioning is not None:
         exmpl = {model.conditioner.key: user_conditioning}
         cond = model.get_conditioning(exmpl).to(device)
-        st.sidebar.write(f"cond.shape: {cond.shape}")
+        # st.sidebar.write(f"cond.shape: {cond.shape}")
 
 
     top_k_schedule = get_top_k_schedule(n_scales, codebook_size=codebook_size)[::-1]
     temperature_schedule = get_temperature_schedule(n_scales)[::-1]
-    st.text(f"top-k schedule: {top_k_schedule}")
-    st.text(f"temperature schedule: {temperature_schedule}")
+    # st.text(f"top-k schedule: {top_k_schedule}")
+    # st.text(f"temperature schedule: {temperature_schedule}")
 
-    n_batches = st.number_input("number runs", value=1000, min_value=1, max_value=1000)
+    n_batches = 1000 # st.number_input("number runs", value=1000, min_value=1, max_value=1000)
     steps = n_scales * [h*w]
 
 
-    if st.button("Sample", False):
-        grid_ph = st.empty()
-        final_samples = list()
-        count = 0
-        for n in range(n_batches):
+    # if st.button("Sample", False):
+        # grid_ph = st.empty()
+    final_samples = list()
+    count = 0
+    for n in range(n_batches):
 
-            scaleinfo = st.empty()
-            scale = start_index
-            c_scale_indices = torch.randint(0,
-                          model.first_stage_model.quantize.re_embed,
-                          index_shape,
-                          device=model.device)
-            current_scale = (scale * torch.ones(batch_size, 1)).to(c_scale_indices).to(device)
+        # scaleinfo = st.empty()
+        scale = start_index
+        c_scale_indices = torch.randint(0,
+                      model.first_stage_model.quantize.re_embed,
+                      index_shape,
+                      device=model.device)
+        current_scale = (scale * torch.ones(batch_size, 1)).to(c_scale_indices).to(device)
 
-            steppys = st.empty()
-            cb = lambda x: steppys.write(f"{x}/{h*w}")
-            for model_count, model in enumerate(models[::-1]):
-                with on_gpu(model, "Sampling"):
-                    temperature = temperature_schedule[scale]
-                    top_k = top_k_schedule[scale]
-                    scaleinfo.write(f"sampling scale {scale+1}/{n_scales}, temp = {temperature:.2f}, top-k = {top_k}")
+        steppys = st.empty()
+        # cb = lambda x: steppys.write(f"{x}/{h*w}")
+        for model_count, model in enumerate(models[::-1]):
+            with on_gpu(model, "Sampling"):
+                temperature = temperature_schedule[scale]
+                top_k = top_k_schedule[scale]
+                # scaleinfo.write(f"sampling scale {scale+1}/{n_scales}, temp = {temperature:.2f}, top-k = {top_k}")
 
-                    with ema_scope(model, active=True, context="Sampling"):
+                with ema_scope(model, active=True, context="Sampling"):
 
-                        assert (current_scale + 1)[0].item() == model.single_scale, \
-                            f"{(current_scale + 1)[0].item()} =/= {model.single_scale} :("
-                        c_scale_indices = model.sample_single_scale(c_scale_indices.to(device),
-                                                                    (current_scale+1).to(device),
-                                                                    temp_x=None,
-                                                                    steps=steps[scale],
-                                                                    temperature=temperature,
-                                                                    top_k=top_k,
-                                                                    cond=cond.to(model.device) if cond is not None else None,
-                                                                    callback=cb
-                                                                    )
+                    assert (current_scale + 1)[0].item() == model.single_scale, \
+                        f"{(current_scale + 1)[0].item()} =/= {model.single_scale} :("
+                    c_scale_indices = model.sample_single_scale(c_scale_indices.to(device),
+                                                                (current_scale+1).to(device),
+                                                                temp_x=None,
+                                                                steps=steps[scale],
+                                                                temperature=temperature,
+                                                                top_k=top_k,
+                                                                cond=cond.to(model.device) if cond is not None else None,
+                                                                callback=None
+                                                                )
 
-                        if model_count == len(models) -1:
-                            final_samples.append(model.decode_to_img(c_scale_indices,
-                                                     [batch_size, qzshape[1], qzshape[2], qzshape[3]]))
-                    scale -= 1
-                    current_scale = (scale * torch.ones(batch_size, 1)).to(device).long()
+                    if model_count == len(models) -1:
+                        final_samples.append(model.decode_to_img(c_scale_indices,
+                                                 [batch_size, qzshape[1], qzshape[2], qzshape[3]]))
+                scale -= 1
+                current_scale = (scale * torch.ones(batch_size, 1)).to(device).long()
 
-            intermediate_grid = make_grid(final_samples[-1],nrow=batch_size,padding=0)
-            PIL.Image.fromarray(chw_to_np(intermediate_grid), 'RGB').save('imagebart/' + str(count).zfill(5) + '.png')
-            count = count + 1
+        intermediate_grid = make_grid(final_samples[-1],nrow=batch_size,padding=0)
+        PIL.Image.fromarray(chw_to_np(intermediate_grid), 'RGB').save('imagebart/' + str(count).zfill(5) + '.png')
+        count = count + 1
             # st.image(chw_to_st(intermediate_grid),clamp=True,output_format='PNG')
         # final_samples = torch.cat(final_samples, 0)
         # grid = make_grid(final_samples, nrow=batch_size, padding=0)
@@ -306,7 +306,7 @@ if __name__ == "__main__":
 
     print(f'logging to {log_path}')
 
-    st.sidebar.text("Options")
+    # st.sidebar.text("Options")
     # gpu = st.sidebar.checkbox("GPU", value=True)
 
     models, configs, global_steps = load_models(paths, gpu=False)
@@ -314,44 +314,44 @@ if __name__ == "__main__":
 
     # dsets = get_data(configs[0])
     step_info = ""
-    st.write(step_info[:-2])
+    # st.write(step_info[:-2])
 
     batch_size = st.number_input("Batch size", min_value=1, value=4)
     conditional = models[0].conditioner is not None
 
 
     user_conditioning = None
-    if conditional:
-        st.info("Detected a conditional model.")
-        user_inputs = []
-        conditioner_key = models[0].conditioner.key
-
-        if conditioner_key == "caption":
-            for n in range(batch_size):
-                user_input = st.text_input(f"user caption {n}", value=f"Example caption {n}")
-                user_inputs.append(user_input)
-
-            #example["caption"] = [user_inputs]
-            user_conditioning = user_inputs
-
-            st.write(f"Selected text-prompts are {user_conditioning}")
-        elif conditioner_key == "class_label":
-
-            cfd = os.path.dirname(os.path.abspath(__file__))
-            integer2human = OmegaConf.load(os.path.join(cfd,'../data/imagenet_ids2labels.yaml'))
-
-            format_fn = lambda x: integer2human[x]
-            for n in range(batch_size):
-                user_input = st.selectbox(f"user class label {n}", index=144,
-                                            options=list(integer2human.keys()),
-                                            format_func=format_fn)
-                user_inputs.append(int(user_input))
-
-            user_conditioning = torch.tensor(user_inputs)
-
-            human_labels = [integer2human[str(l)] for l in user_inputs]
-            st.write(f"Selected class labels are {human_labels}")
-        else:
-            raise NotImplementedError(f"Model with conditoner key {conditioner_key} not yet implemented.")
+    # if conditional:
+    #     # st.info("Detected a conditional model.")
+    #     user_inputs = []
+    #     conditioner_key = models[0].conditioner.key
+    #
+    #     if conditioner_key == "caption":
+    #         for n in range(batch_size):
+    #             user_input = st.text_input(f"user caption {n}", value=f"Example caption {n}")
+    #             user_inputs.append(user_input)
+    #
+    #         #example["caption"] = [user_inputs]
+    #         user_conditioning = user_inputs
+    #
+    #         # st.write(f"Selected text-prompts are {user_conditioning}")
+    #     elif conditioner_key == "class_label":
+    #
+    #         cfd = os.path.dirname(os.path.abspath(__file__))
+    #         integer2human = OmegaConf.load(os.path.join(cfd,'../data/imagenet_ids2labels.yaml'))
+    #
+    #         format_fn = lambda x: integer2human[x]
+    #         for n in range(batch_size):
+    #             user_input = st.selectbox(f"user class label {n}", index=144,
+    #                                         options=list(integer2human.keys()),
+    #                                         format_func=format_fn)
+    #             user_inputs.append(int(user_input))
+    #
+    #         user_conditioning = torch.tensor(user_inputs)
+    #
+    #         human_labels = [integer2human[str(l)] for l in user_inputs]
+    #         # st.write(f"Selected class labels are {human_labels}")
+    #     else:
+    #         raise NotImplementedError(f"Model with conditoner key {conditioner_key} not yet implemented.")
 
     run(models, user_conditioning, batch_size, device=device,conditional=conditional)
