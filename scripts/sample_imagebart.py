@@ -5,9 +5,12 @@ import numpy as np
 from omegaconf import OmegaConf
 import streamlit as st
 from PIL import Image
+import pathlib
 from main import instantiate_from_config
 from torchvision.utils import make_grid
 from contextlib import contextmanager
+import PIL.Image
+
 
 rescale = lambda x: (x + 1.) / 2.
 
@@ -140,7 +143,7 @@ def on_gpu(model, context=None):
 
 
 @torch.no_grad()
-def run(models, user_conditioning, batch_size, device=torch.device("cuda"),conditional=False):
+def run(models, user_conditioning, batch_size, device=torch.device("cuda:0"),conditional=False):
     assert type(models) == list
 
     n_scales = len(models)
@@ -150,7 +153,7 @@ def run(models, user_conditioning, batch_size, device=torch.device("cuda"),condi
     start_index = len(models) - 1
     model = models[start_index]
 
-
+    pathlib.Path('imagebart/').mkdir(parents=True, exist_ok=True)
     n_downs= model.first_stage_model.encoder.num_resolutions - 1
     h = model.first_stage_model.encoder.resolution // (2**n_downs)
     w = model.first_stage_model.encoder.resolution // (2**n_downs)
@@ -172,13 +175,14 @@ def run(models, user_conditioning, batch_size, device=torch.device("cuda"),condi
     st.text(f"top-k schedule: {top_k_schedule}")
     st.text(f"temperature schedule: {temperature_schedule}")
 
-    n_batches = st.number_input("number runs", value=1, min_value=1, max_value=1000)
+    n_batches = st.number_input("number runs", value=1000, min_value=1, max_value=1000)
     steps = n_scales * [h*w]
 
 
     if st.button("Sample", False):
         grid_ph = st.empty()
         final_samples = list()
+        count = 0
         for n in range(n_batches):
 
             scaleinfo = st.empty()
@@ -218,11 +222,12 @@ def run(models, user_conditioning, batch_size, device=torch.device("cuda"),condi
                     current_scale = (scale * torch.ones(batch_size, 1)).to(device).long()
 
             intermediate_grid = make_grid(final_samples[-1],nrow=batch_size,padding=0)
-            st.image(chw_to_st(intermediate_grid),clamp=True,output_format='PNG')
-
-        final_samples = torch.cat(final_samples, 0)
-        grid = make_grid(final_samples, nrow=batch_size, padding=0)
-        grid_ph.image(chw_to_st(grid), clamp=True, output_format="PNG")
+            PIL.Image.fromarray(chw_to_np(intermediate_grid), 'RGB').save('imagebart/' + str(count).zfill(5) + '.png')
+            count = count + 1
+            # st.image(chw_to_st(intermediate_grid),clamp=True,output_format='PNG')
+        # final_samples = torch.cat(final_samples, 0)
+        # grid = make_grid(final_samples, nrow=batch_size, padding=0)
+        # grid_ph.image(chw_to_st(grid), clamp=True, output_format="PNG")
 
 @torch.no_grad()
 def render_as_grid(scale_samples, batch_size, stack=True):
@@ -302,10 +307,10 @@ if __name__ == "__main__":
     print(f'logging to {log_path}')
 
     st.sidebar.text("Options")
-    gpu = st.sidebar.checkbox("GPU", value=True)
+    # gpu = st.sidebar.checkbox("GPU", value=True)
 
     models, configs, global_steps = load_models(paths, gpu=False)
-    device = torch.device("cuda") if gpu else torch.device("cpu")
+    device = torch.device("cuda:0")
 
     # dsets = get_data(configs[0])
     step_info = ""
