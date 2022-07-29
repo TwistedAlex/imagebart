@@ -294,7 +294,7 @@ def load_models(paths, gpu=False, eval_mode=True):
 
 if __name__ == "__main__":
 
-    yaml_path = sys.argv[1]
+    yaml_path = 'configs/sampling/ffhq/ffhq_4_scales_geometric.yaml' # sys.argv[1]
     log_path = yaml_path.split(os.sep)[-1][:-5]
     paths = OmegaConf.load(yaml_path)
     print(OmegaConf.to_yaml(paths))
@@ -316,7 +316,7 @@ if __name__ == "__main__":
     step_info = ""
     # st.write(step_info[:-2])
 
-    batch_size = st.number_input("Batch size", min_value=1, value=4)
+    batch_size = 1000 # st.number_input("Batch size", min_value=1, value=4)
     conditional = models[0].conditioner is not None
 
 
